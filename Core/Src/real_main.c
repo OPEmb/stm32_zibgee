@@ -60,7 +60,7 @@ static uint8_t read_short(uint8_t addr){
 	if(status != HAL_OK){
 		asm ("nop");
 	}
-	uint8_t data = 1;
+	uint8_t data = 0;
 	status = HAL_SPI_Receive(spi, &data, 1, 1);
 
 	if(status != HAL_OK){
@@ -123,13 +123,65 @@ static void write_long_l(uint16_t addr,uint8_t* data,uint16_t size){
 		__NOP();
 	}
 
-	status = HAL_SPI_Receive(spi,data,size,1);
+	status = HAL_SPI_Transmit(spi,data,size,1);
 
 	cs_high();
 }
 
 static void write_long(uint16_t addr,uint8_t data){
 	write_long_l(addr,&data,1);
+}
+
+static void write_tx_fifo(const uint8_t offset,const uint8_t* data,uint8_t size){
+	uint32_t status = HAL_OK;
+	const uint16_t addr = 128 * offset;
+	uint8_t high = 0x80 | (addr >> 3);
+	uint8_t low =  0x10 | addr << 5;
+	uint8_t u8_addr[2] = {high,low};
+
+	cs_low();
+	status = HAL_SPI_Transmit(spi,u8_addr,2, 1);
+	status = HAL_SPI_Transmit(spi,data,size,1 * size);
+	cs_high();
+}
+
+static void read_tx_fifo(const uint8_t offset,uint8_t* data,uint8_t size){
+	uint32_t status = HAL_OK;
+	const uint16_t addr = 128 * offset;
+	uint8_t high = 0x80 | (addr >> 3);
+	uint8_t low =  addr << 5;
+	uint8_t u8_addr[2] = {high,low};
+
+	cs_low();
+	status = HAL_SPI_Transmit(spi,u8_addr,2, 1);
+	status = HAL_SPI_Receive(spi,data,size,1 * size);
+	cs_high();
+}
+
+static void write_rx_fifo(uint8_t* data,uint8_t size){
+	uint32_t status = HAL_OK;
+	const uint16_t addr = 0x300;
+	uint8_t high = 0x80 | (addr >> 3);
+	uint8_t low =  0x10 | addr << 5;
+	uint8_t u8_addr[2] = {high,low};
+
+	cs_low();
+	status = HAL_SPI_Transmit(spi,u8_addr,2, 1);
+	status = HAL_SPI_Transmit(spi,data,size,1 * size);
+	cs_high();
+}
+
+static void read_rx_fifo(uint8_t* data,uint8_t size){
+	uint32_t status = HAL_OK;
+	const uint16_t addr = 0x300;;
+	uint8_t high = 0x80 | (addr >> 3);
+	uint8_t low =  addr << 5;
+	uint8_t u8_addr[2] = {high,low};
+
+	cs_low();
+	status = HAL_SPI_Transmit(spi,u8_addr,2, 1);
+	status = HAL_SPI_Receive(spi,data,size,1 * size);
+	cs_high();
 }
 
 
@@ -176,7 +228,8 @@ void set_interrupts(void) {
 
 void set_channel(uint8_t channel) {
   //  (((channel - 11) << 4) | 0x03));
-  write_long(MRF_RFCON0, (((channel - 11) << 4) | 0x03));
+  uint8_t res = (((channel - 11) << 4) | 0x03);
+  write_long(MRF_RFCON0, res);
 }
 
 void init(void) {
@@ -204,7 +257,7 @@ void init(void) {
     write_short(MRF_CCAEDTH, 0x60); // – Set CCA ED threshold.
     write_short(MRF_BBREG6, 0x40); // – Set appended RSSI value to RXFIFO.
     set_interrupts();
-    set_channel(11);
+    set_channel(12);
     // max power is by default.. just leave it...
     // Set transmitter power - See “REGISTER 2-62: RF CONTROL 3 REGISTER (ADDRESS: 0x203)”.
     write_short(MRF_RFCTL, 0x04); //  – Reset RF state machine.
@@ -218,19 +271,60 @@ void set_pan(uint16_t panid) {
 }
 
 static int int_triggered;
+static volatile uint8_t interrupt;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	int_triggered++;
 	uint8_t last_interrupt = read_short(MRF_INTSTAT);
 	uint8_t tmp = read_short(MRF_TXSTAT);
+	if(!last_interrupt && !tmp){
+		return;
+	}
+	interrupt = 1;
+
 	__NOP();
+}
+
+void send_piflar(void){
+	const char* p = "PIFLAR";
+	int len = 6;
+	uint8_t hdr[] = {
+			0x09,
+			0x09 + len,
+			0x41,0x88,
+			0x01,0x66,
+			0x33,
+			0xFF,0xFF,
+			0x11,0x11,
+	};
+	uint8_t frame[sizeof(hdr) + len];
+	memcpy(frame,hdr,sizeof(hdr));
+	memcpy(frame + sizeof(hdr),p,len);
+	write_tx_fifo(0,frame,sizeof(frame));
+	write_short(MRF_TXNCON,  (1<<MRF_TXNACKREQ | 1<<MRF_TXNTRIG));
+}
+
+void send2(char* data){
+	int len = strlen(data);
+	uint8_t hdr[] = {
+			0x0F,0x0F + len, // hdr len, hdr len + frame len
+			0x41,0x8C, // FC
+			0x01, // SN
+			0x23,0x23, // dest PANID
+			0x05,0x05,0x05,0x05,0x05,0x05,0x05,0x05, // dest
+			0xB2,0x94 // src
+	};
+	uint8_t frame[sizeof(hdr) + len];
+	memcpy(frame,hdr,sizeof(hdr));
+	memcpy(frame + sizeof(hdr),data,len);
+	write_tx_fifo(0,frame,sizeof(frame));
+	write_short(MRF_TXNCON, (1<<MRF_TXNACKREQ | 1<<MRF_TXNTRIG));
 }
 
 void send(char* data){
 	int i = 0;
 	int len = strlen(data);
-	uint8_t ignoreBytes = 0;
 
 	uint8_t bytes_MHR = 15;
 	write_long(i++, bytes_MHR); // header length
@@ -239,10 +333,10 @@ void send(char* data){
 
 
 	//bytes_MHR = 2 Frame control + 1 sequence number + 2 panid + 8 shortAddr Destination + 8 shortAddr Source
-	write_long(i++, bytes_MHR+ignoreBytes+len);
+	write_long(i++, bytes_MHR+len);
 
 	// 0 | pan compression | ack | no security | no data pending | data frame[3 bits]
-	write_long(i++, 0x61); // first byte of Frame Control
+	write_long(i++, 0x41); // first byte of Frame Control
 	// 16 bit source, 802.15.4 (2003), 16 bit dest,
 	write_long(i++, 0x8c); // second byte of frame control
 	write_long(i++, 1);  // sequence number 1
@@ -273,7 +367,6 @@ void send(char* data){
 
 	// All testing seems to indicate that the next two bytes are ignored.
 	//2 bytes on FCS appended by TXMAC
-	i+=ignoreBytes;
 	for (int q = 0; q < len; q++) {
 		write_long(i++, data[q]);
 	}
@@ -291,14 +384,20 @@ void real_main(SPI_HandleTypeDef* hspi){
 	uint8_t waketimel = 0;
 	read_long(0x222,&waketimel);
 
-	uint8_t data[] = {1,2,3,4};
-	write_long_l(0,data,4);
-	read_long_l(0,data,4);
+	uint8_t txfifo[128] = {};
+	for(uint8_t i = 0; i < 128;++i){
+		txfifo[i] = i;
+	}
 
 	init();
+
+	set_pan(0xFFFF);
 	while(1){
-		send("PIFLAR");
+		send_piflar();
 		HAL_Delay(100);
+		while(!interrupt);
+		interrupt = 0;
+		//send_ping();
 	}
 
 
