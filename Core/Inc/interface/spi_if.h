@@ -9,21 +9,14 @@ typedef struct spi_if_t spi_if_t;
 // return 0 indicates success
 typedef int (*spi_tx_fn)(spi_if_t* spi_if,const uint8_t* data,uint16_t len);
 typedef int (*spi_rx_fn)(spi_if_t* spi_if,uint8_t* data,uint16_t len);
+typedef int (*spi_tx_rx_fn)(spi_if_t* spi_if,const uint8_t* tx_data,uint16_t tx_len,
+		uint8_t* rx_data,uint16_t rx_len);
 
 struct spi_if_t {
-    uint8_t cs;
-    spi_tx_fn spi_tx;
-    spi_rx_fn spi_rx; 
-    gpio_if_t* cs_pin;
+    spi_tx_fn tx;
+    spi_rx_fn rx;
+    spi_tx_rx_fn tx_rx;
+    void* ctx;
 };
-
-static inline spi_if_t spi_if_init(spi_tx_fn spi_tx,spi_rx_fn spi_rx,uint8_t cs,gpio_if_t* cs_pin){
-    return (spi_if_t){
-        .cs = cs,
-        .spi_tx = spi_tx,
-        .spi_rx = spi_rx,
-        .cs_pin = cs_pin,
-    };
-}
 
 #endif /* SPI_F_H */

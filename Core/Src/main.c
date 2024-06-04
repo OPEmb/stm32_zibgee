@@ -18,12 +18,15 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
 #include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "real_main.h"
+#include "spi_if.h"
+#include "mrf24j40ma_dev.h"
+#include "gpio_if.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,7 +48,8 @@
 
 SPI_HandleTypeDef hspi2;
 
-osThreadId defaultTaskHandle;
+TIM_HandleTypeDef htim3;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -54,8 +58,7 @@ osThreadId defaultTaskHandle;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI2_Init(void);
-void StartDefaultTask(void const * argument);
-
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -63,12 +66,135 @@ void StartDefaultTask(void const * argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+static void delay_us(uint16_t delay){
+	uint16_t start = __HAL_TIM_SET_COUNTER(&htim3,0);
+
+	while ((__HAL_TIM_SET_COUNTER(&htim3,0) - start) < delay)
+	{
+	}
+}
+
+static void mrf24j0_cs_pin(uint8_t state){
+	HAL_GPIO_WritePin(MRF_CS_GPIO_Port,MRF_CS_Pin,state);
+}
+
+static void cs_low(void){
+	mrf24j0_cs_pin(0);
+}
+
+static void cs_high(void){
+	mrf24j0_cs_pin(1);
+}
+
+static void gpio_if_set_val(gpio_if_t* gpio,uint8_t val){
+	HAL_GPIO_WritePin((GPIO_TypeDef *)gpio->port,(uint16_t)gpio->pin,val);
+}
+
+void gpio_if_set_pin(gpio_if_t* gpio){
+	gpio_if_set_val(gpio,1);
+}
+
+void gpio_if_clear_pin(gpio_if_t* gpio){
+	gpio_if_set_val(gpio,0);
+}
+
+
+static int spi_tx(spi_if_t* spi,const uint8_t* data,uint16_t len){
+	uint32_t status;
+
+	cs_low();
+	status = HAL_SPI_Transmit((SPI_HandleTypeDef*)spi->ctx,data,len, HAL_MAX_DELAY);
+	cs_high();
+	return !(status == HAL_OK);
+}
+
+static int spi_rx(spi_if_t* spi,uint8_t* data,uint16_t len){
+	uint32_t status;
+
+	cs_low();
+	status = HAL_SPI_Receive((SPI_HandleTypeDef*)spi->ctx,data,len, HAL_MAX_DELAY);
+	cs_high();
+	return !(status == HAL_OK);
+}
+
+static int spi_tx_rx(spi_if_t* spi,const uint8_t* tx_data,uint16_t tx_len,
+		uint8_t* rx_data,uint16_t rx_len){
+	uint32_t status = 0;
+
+	cs_low();
+	status |= HAL_SPI_Transmit((SPI_HandleTypeDef*)spi->ctx,tx_data,tx_len, HAL_MAX_DELAY);
+	status |= HAL_SPI_Receive((SPI_HandleTypeDef*)spi->ctx,rx_data,rx_len, HAL_MAX_DELAY);
+	cs_high();
+	return !(status == HAL_OK);
+}
+
+extern void main2(spi_if_t* spi_if,gpio_if_t* mrf_rst_pin,mrf24j40ma_delay_us_fn delay_us);
+
 /* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
   * @retval int
   */
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_SPI2_Init();
+  MX_USB_DEVICE_Init();
+  MX_TIM3_Init();
+  /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim3);
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  spi_if_t spi_if = {
+		  .rx = spi_rx,
+		  .tx = spi_tx,
+		  .tx_rx = spi_tx_rx,
+		  .ctx = &hspi2
+  };
+
+  gpio_if_t mrf_rst_pin = {
+		  .port = (int)MRF_RST_GPIO_Port,
+		  .pin = (int)MRF_RST_Pin,
+  };
+
+
+
+
+  //main2(&spi_if,&mrf_rst_pin,delay_us);
+  real_main(&hspi2);
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
 
 /**
   * @brief System Clock Configuration
@@ -179,6 +305,51 @@ static void MX_SPI2_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 64;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 0xffff-1;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -219,10 +390,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -233,29 +404,9 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
-/**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void const * argument)
-{
-  /* init code for USB_DEVICE */
-  MX_USB_DEVICE_Init();
-  /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END 5 */
-}
-
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM1 interrupt took place, inside
+  * @note   This function is called  when TIM2 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
@@ -266,7 +417,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1) {
+  if (htim->Instance == TIM2) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */

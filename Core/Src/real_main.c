@@ -6,8 +6,6 @@
 #include "main.h"
 #include "usbd_cdc_if.h"
 #include "mrfj24_defs.h"
-#include "FreeRTOS.h"
-#include "task.h"
 #include "stm32h7xx_hal.h"
 
 // [1] MRF24J40 IEEE 802.15.4 2.4GHz RF Transceiver
@@ -377,7 +375,6 @@ void send(char* data){
 }
 
 void real_main(SPI_HandleTypeDef* hspi){
-
 	spi = hspi;
 	RXMCR_REG_t rxmcr = {};
 

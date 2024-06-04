@@ -49,45 +49,123 @@ typeof(NULL_CAST(mrf24j40ma_long_control_regs_t)->r.reg)
 #define MRF24J40_READLONG_A(reg) (1 << 15 | (reg) << 5)
 #define MRF24J40_WRITELONG_A(reg) (1 << 15 | (reg) << 5 | 1 << 4)
 
-#define RETURN_ON_ERR(x)  do {             \
-        int rc_err = (x);                     \
+#define DELAY_CONSTANT_US (192) // from datasheet
+
+#define RETURN_ON_ERR(x)  do {      \
+        int rc_err = (x);           \
         if (rc_err != 0) {          \
-            return rc_err;                    \
-        }                                  \
+            return rc_err;          \
+        }                           \
     } while(0)
 
 #define NOT_IMPL return (-1)
 
-STATIC int reset(void){
-    NOT_IMPL;   
+STATIC int read_short_l(mrf24j40ma_dev_t* dev,uint8_t addr,uint8_t* value,uint16_t len){
+	//dev->spi->tx_rx(dev->spi,&addr,)
 }
 
-STATIC int test_interrupt(void){
+STATIC int read_short(mrf24j40ma_dev_t* dev,uint8_t addr,uint8_t* value){
+
+}
+
+STATIC int read_long_l(mrf24j40ma_dev_t* dev,uint8_t addr,uint8_t* value,uint16_t len){
+
+}
+
+STATIC int read_long(mrf24j40ma_dev_t* dev,uint8_t addr,uint8_t* value){
+
+}
+
+
+STATIC int write_short_l(mrf24j40ma_dev_t* dev,uint8_t addr,uint8_t* value,uint16_t len){
+
+}
+
+STATIC int write_short(mrf24j40ma_dev_t* dev,uint8_t addr,uint8_t value){
+
+}
+
+STATIC int write_long_l(mrf24j40ma_dev_t* dev,uint8_t addr,uint8_t* value,uint16_t len){
+
+}
+
+STATIC int write_long(mrf24j40ma_dev_t* dev,uint8_t addr,uint8_t value){
+
+}
+
+
+STATIC int reset(mrf24j40ma_dev_t* dev){
+	gpio_if_set_pin(dev->reset_pin);
+    return 0;
+}
+
+STATIC int test_interrupt(mrf24j40ma_dev_t* dev){
     NOT_IMPL;
 }
 
-STATIC int test_spi(void){
+STATIC int test_spi(mrf24j40ma_dev_t* dev){
+	uint8_t wakel = 0;
+
+	return 0;
+}
+
+STATIC int perform_testing(mrf24j40ma_dev_t* dev){
+    RETURN_ON_ERR(test_spi(dev));
+    RETURN_ON_ERR(test_interrupt(dev));
     NOT_IMPL;
 }
 
-STATIC int perform_testing(void){
-    RETURN_ON_ERR(test_spi());
-    RETURN_ON_ERR(test_interrupt());
-    NOT_IMPL;
+STATIC void interrupt(mrf24j40ma_dev_t* dev){
+
 }
 
-STATIC int init(void){
-    NOT_IMPL;
+STATIC int init(mrf24j40ma_dev_t* dev){
+
+/*
+	write_short(MRF_PACON2, 0x98); // – Initialize FIFOEN = 1 and TXONTS = 0x6.
+	write_short(MRF_TXSTBL, 0x95); // – Initialize RFSTBL = 0x9.
+
+	write_long(MRF_RFCON0, 0x03); // – Initialize RFOPT = 0x03.
+	write_long(MRF_RFCON1, 0x01); // – Initialize VCOOPT = 0x02.
+	write_long(MRF_RFCON2, 0x80); // – Enable PLL (PLLEN = 1).
+	write_long(MRF_RFCON6, 0x90); // – Initialize TXFIL = 1 and 20MRECVR = 1.
+	write_long(MRF_RFCON7, 0x80); // – Initialize SLPCLKSEL = 0x2 (100 kHz Internal oscillator).
+	write_long(MRF_RFCON8, 0x10); // – Initialize RFVCO = 1.
+	write_long(MRF_SLPCON1, 0x21); // – Initialize CLKOUTEN = 1 and SLPCLKDIV = 0x01.
+
+	//  Configuration for nonbeacon-enabled devices (see Section 3.8 “Beacon-Enabled and
+	//  Nonbeacon-Enabled Networks”):
+	write_short(MRF_BBREG2, 0x80); // Set CCA mode to ED
+	write_short(MRF_CCAEDTH, 0x60); // – Set CCA ED threshold.
+	write_short(MRF_BBREG6, 0x40); // – Set appended RSSI value to RXFIFO.
+	set_interrupts();
+	set_channel(12);
+	// max power is by default.. just leave it...
+	// Set transmitter power - See “REGISTER 2-62: RF CONTROL 3 REGISTER (ADDRESS: 0x203)”.
+	write_short(MRF_RFCTL, 0x04); //  – Reset RF state machine.
+	write_short(MRF_RFCTL, 0x00); // part 2
+	delay_1ms();
+*/
+	return 0;
 }
 
-void mrf24_create_dev(mrf24j40ma_dev_t* dev,gpio_if_t* reset_pin,spi_if_t* spi,mrf24j40ma_delay_us_fn delay_us){
-    assert(dev && spi && delay_us);
+void mrf24_create_dev(mrf24j40ma_dev_t* dev,gpio_if_t* reset_pin,spi_if_t* spi,mrf24j40ma_delay_us_fn delay_us
+		,mrf24j40ma_isr_fn enable_int,mrf24j40ma_isr_fn disable_int){
+    assert(dev && spi && delay_us && enable_int && disable_int);
     memset(dev,0,sizeof(*dev));
     dev->spi = spi;
     dev->delay_us = delay_us;
     dev->reset_pin = reset_pin;
 
     dev->init = init;
+    dev->int_callback = interrupt;
+
+
+    if(!perform_testing(dev)){
+    	Error_Handler();
+    }
+
+
 }
 
 
