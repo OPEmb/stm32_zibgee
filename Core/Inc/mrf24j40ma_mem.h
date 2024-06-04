@@ -4,7 +4,7 @@
 #include <mrf24j40ma_short_regs.h>
 
 typedef struct{
-	REG_t val;
+	uint8_t val;
 } REG_t;
 
 typedef union{

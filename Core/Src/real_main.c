@@ -7,6 +7,7 @@
 #include "usbd_cdc_if.h"
 #include "mrf24j40ma_mem.h"
 #include "stm32h7xx_hal.h"
+#include "mrf24.h"
 
 /* Read/Write SPI Commands for Short and Long Address registers. */
 #define MRF24J40_READSHORT(reg) ((reg) << 1)
@@ -252,12 +253,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	int_triggered++;
 	interrupt = 1;
+	HAL_NVIC_DisableIRQ(EXTI1_IRQn);
 }
 
 static uint32_t wait_int_until_timeout(uint32_t timeout){
 	uint32_t tick_start = HAL_GetTick();
 	uint32_t elapsed = 0;
-	uint32_t ret = 0;
+	uint32_t ret = 1;
 	while(!interrupt){
 		elapsed = HAL_GetTick() - tick_start;
 		if(timeout == 0 || elapsed > timeout){
@@ -266,8 +268,8 @@ static uint32_t wait_int_until_timeout(uint32_t timeout){
 		}
 	}
 	interrupt = 0;
-	ret = elapsed;
-	return elapsed;
+
+	return ret;
 }
 
 void send_piflar(void){
@@ -307,14 +309,18 @@ void send2(char* data){
 }
 
 int sent;
-uint32_t timeout = 0;
+uint32_t int_trig;
+uint32_t int_trig_reg_empty;
+uint8_t tx_stat;
+uint8_t waketimel;
+uint32_t delay = 50;
 void real_main(SPI_HandleTypeDef* hspi){
 
 	spi = hspi;
 
 	mrf24j0_reset();
 
-	uint8_t waketimel = 0;
+
 	while(waketimel != 10){ // default value at reset
 		read_long(0x222,&waketimel);
 	}
@@ -325,15 +331,22 @@ void real_main(SPI_HandleTypeDef* hspi){
 	while(1){
 		send_piflar();
 		sent++;
-		timeout = wait_int_until_timeout(1000);
-		uint8_t last_interrupt = read_short(MRF_INTSTAT);
-		uint8_t tx_stat = read_short(MRF_TXSTAT);
-		while(!last_interrupt){
+		int_trig = wait_int_until_timeout(1000);
+		uint8_t last_interrupt = 0;
+		if(int_trig){
 			last_interrupt = read_short(MRF_INTSTAT);
+			tx_stat = read_short(MRF_TXSTAT);
+			HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+		}
+		else{
+			int_empty++;
 			write_long(0x222,0xA);
 			read_long(0x222,&waketimel);
-			HAL_Delay(100);
-			int_empty++;
+
+		}
+		HAL_Delay(delay);
+		if(!last_interrupt){
+			int_trig_reg_empty++;
 		}
 
 
