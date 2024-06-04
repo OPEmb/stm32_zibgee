@@ -1,5 +1,8 @@
 // Automatically generated file. DO NOT EDIT.
 
+#ifndef MRF24J40MA_SHORT_REGS_h
+#define MRF24J40MA_SHORT_REGS_h
+
 #include <stdint.h>
 
 
@@ -692,3 +695,5 @@ typedef union{
     };
     uint8_t val;
 } CCAEDTH_t;
+
+#endif /* MRF24J40MA_SHORT_REGS_h */
