@@ -5,8 +5,14 @@
  */
 #include "main.h"
 #include "usbd_cdc_if.h"
-#include "mrfj24_defs.h"
+#include "mrf24j40ma_mem.h"
 #include "stm32h7xx_hal.h"
+
+/* Read/Write SPI Commands for Short and Long Address registers. */
+#define MRF24J40_READSHORT(reg) ((reg) << 1)
+#define MRF24J40_WRITESHORT(reg) ((reg) << 1 | 1)
+#define MRF24J40_READLONG(reg) (1 << 15 | (reg) << 5)
+#define MRF24J40_WRITELONG(reg) (1 << 15 | (reg) << 5 | 1 << 4)
 
 // [1] MRF24J40 IEEE 802.15.4 2.4GHz RF Transceiver
 
@@ -124,6 +130,9 @@ static void write_long_l(uint16_t addr,uint8_t* data,uint16_t size){
 	}
 
 	status = HAL_SPI_Transmit(spi,data,size,1);
+	if(status != HAL_OK){
+		__NOP();
+	}
 
 	cs_high();
 }
@@ -184,43 +193,6 @@ static void read_rx_fifo(uint8_t* data,uint8_t size){
 	cs_high();
 }
 
-
-
-typedef union{
-	struct{
-		uint8_t b1 : 1;
-		uint8_t b2 : 1;
-		uint8_t b3 : 1;
-		uint8_t b4 : 1;
-		uint8_t b5 : 1;
-		uint8_t b6 : 1;
-		uint8_t b7 : 1;
-	}b;
-	struct{
-		uint8_t b1 : 1;
-		uint8_t b2 : 1;
-		uint8_t b3 : 1;
-		uint8_t b4 : 1;
-		uint8_t b5 : 1;
-		uint8_t b6 : 1;
-		uint8_t b7 : 1;
-	}r;
-	uint8_t val;
-} reg_t;
-
-typedef union{
-struct{
-	uint8_t PROMI    : 1;
-	uint8_t COORD    : 1;
-	uint8_t PANCOORD : 1;
-	uint8_t          : 1;
-	uint8_t NOACKRSP : 1;
-	uint8_t          : 1;
-	uint8_t          : 1;
-};
-uint8_t val;
-} RXMCR_REG_t;
-
 void set_interrupts(void) {
   // interrupts for rx and tx normal complete
   write_short(MRF_INTCON, 0b11110110);
@@ -240,6 +212,8 @@ void init(void) {
         ; // wait for soft reset to finish
     }
     */
+
+
     write_short(MRF_PACON2, 0x98); // – Initialize FIFOEN = 1 and TXONTS = 0x6.
     write_short(MRF_TXSTBL, 0x95); // – Initialize RFSTBL = 0x9.
 
@@ -271,19 +245,29 @@ void set_pan(uint16_t panid) {
 }
 
 static int int_triggered;
+static int int_empty;
 static volatile uint8_t interrupt;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	int_triggered++;
-	uint8_t last_interrupt = read_short(MRF_INTSTAT);
-	uint8_t tmp = read_short(MRF_TXSTAT);
-	if(!last_interrupt && !tmp){
-		return;
-	}
 	interrupt = 1;
+}
 
-	__NOP();
+static uint32_t wait_int_until_timeout(uint32_t timeout){
+	uint32_t tick_start = HAL_GetTick();
+	uint32_t elapsed = 0;
+	uint32_t ret = 0;
+	while(!interrupt){
+		elapsed = HAL_GetTick() - tick_start;
+		if(timeout == 0 || elapsed > timeout){
+			ret = 0;
+			break;
+		}
+	}
+	interrupt = 0;
+	ret = elapsed;
+	return elapsed;
 }
 
 void send_piflar(void){
@@ -322,82 +306,37 @@ void send2(char* data){
 	write_short(MRF_TXNCON, (1<<MRF_TXNACKREQ | 1<<MRF_TXNTRIG));
 }
 
-void send(char* data){
-	int i = 0;
-	int len = strlen(data);
-
-	uint8_t bytes_MHR = 15;
-	write_long(i++, bytes_MHR); // header length
-	// +ignoreBytes is because some module seems to ignore 2 bytes after the header?!.
-	// default: ignoreBytes = 0;
-
-
-	//bytes_MHR = 2 Frame control + 1 sequence number + 2 panid + 8 shortAddr Destination + 8 shortAddr Source
-	write_long(i++, bytes_MHR+len);
-
-	// 0 | pan compression | ack | no security | no data pending | data frame[3 bits]
-	write_long(i++, 0x41); // first byte of Frame Control
-	// 16 bit source, 802.15.4 (2003), 16 bit dest,
-	write_long(i++, 0x8c); // second byte of frame control
-	write_long(i++, 1);  // sequence number 1
-
-
-	write_long(i++, 0x2323 & 0xff);  // dest panid
-	write_long(i++, 0x2323 >> 8);
-
-	// Dest
-	write_long(i++, 0x57);
-	write_long(i++, 0xeb);
-	write_long(i++, 0x1c);
-	write_long(i++, 0xe4);
-	write_long(i++, 0xd6);
-	write_long(i++, 0x2c);
-	write_long(i++, 0x55);
-	write_long(i++, 0xd6);
-	//write_long(i++, dest16 & 0xff);  // dest16 low
-	//write_long(i++, dest16 >> 8); // dest16 high
-
-	// Source
-	write_long(i++, 0xb2);
-	write_long(i++, 0x94);
-
-
-	//write_long(i++, src16 & 0xff); // src16 low
-	//write_long(i++, src16 >> 8); // src16 high
-
-	// All testing seems to indicate that the next two bytes are ignored.
-	//2 bytes on FCS appended by TXMAC
-	for (int q = 0; q < len; q++) {
-		write_long(i++, data[q]);
-	}
-	// ack on, and go!
-	write_short(MRF_TXNCON, (1<<MRF_TXNACKREQ | 1<<MRF_TXNTRIG));
-}
-
+int sent;
+uint32_t timeout = 0;
 void real_main(SPI_HandleTypeDef* hspi){
 
 	spi = hspi;
-	RXMCR_REG_t rxmcr = {};
 
 	mrf24j0_reset();
 
 	uint8_t waketimel = 0;
-	read_long(0x222,&waketimel);
-
-	uint8_t txfifo[128] = {};
-	for(uint8_t i = 0; i < 128;++i){
-		txfifo[i] = i;
+	while(waketimel != 10){ // default value at reset
+		read_long(0x222,&waketimel);
 	}
-
 	init();
 
 	set_pan(0xFFFF);
+
 	while(1){
 		send_piflar();
-		HAL_Delay(100);
-		while(!interrupt);
-		interrupt = 0;
-		//send_ping();
+		sent++;
+		timeout = wait_int_until_timeout(1000);
+		uint8_t last_interrupt = read_short(MRF_INTSTAT);
+		uint8_t tx_stat = read_short(MRF_TXSTAT);
+		while(!last_interrupt){
+			last_interrupt = read_short(MRF_INTSTAT);
+			write_long(0x222,0xA);
+			read_long(0x222,&waketimel);
+			HAL_Delay(100);
+			int_empty++;
+		}
+
+
 	}
 
 

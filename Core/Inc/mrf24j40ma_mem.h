@@ -1,26 +1,30 @@
 // Automatically generated file. DO NOT EDIT.
 
-#include "mrf24j0ma_short_regs.h"
-#include "mrf24j0ma_long_regs.h"
+#include <mrf24j40ma_long_regs.h>
+#include <mrf24j40ma_short_regs.h>
+
+typedef struct{
+	REG_t val;
+} REG_t;
 
 typedef union{
     struct{
         RXMCR_t                             RXMCR ; // 0x00
-        uint8_t                            PANIDL ; // 0x01
-        uint8_t                            PANIDH ; // 0x02
-        uint8_t                             SADRL ; // 0x03
-        uint8_t                             SADRH ; // 0x04
-        uint8_t                             EADR0 ; // 0x05
-        uint8_t                             EADR1 ; // 0x06
-        uint8_t                             EADR2 ; // 0x07
-        uint8_t                             EADR3 ; // 0x08
-        uint8_t                             EADR4 ; // 0x09
-        uint8_t                             EADR5 ; // 0x0A
-        uint8_t                             EADR6 ; // 0x0B
-        uint8_t                             EADR7 ; // 0x0C
+        REG_t                            PANIDL ; // 0x01
+        REG_t                            PANIDH ; // 0x02
+        REG_t                             SADRL ; // 0x03
+        REG_t                             SADRH ; // 0x04
+        REG_t                             EADR0 ; // 0x05
+        REG_t                             EADR1 ; // 0x06
+        REG_t                             EADR2 ; // 0x07
+        REG_t                             EADR3 ; // 0x08
+        REG_t                             EADR4 ; // 0x09
+        REG_t                             EADR5 ; // 0x0A
+        REG_t                             EADR6 ; // 0x0B
+        REG_t                             EADR7 ; // 0x0C
         RXFLUSH_t                         RXFLUSH ; // 0x0D
-        uint8_t                                R0 ; // 0x0E
-        uint8_t                                R1 ; // 0x0F
+        REG_t                                R0 ; // 0x0E
+        REG_t                                R1 ; // 0x0F
         ORDER_t                             ORDER ; // 0x10
         TXMCR_t                             TXMCR ; // 0x11
         ACKTMOUT_t                       ACKTMOUT ; // 0x12
@@ -30,7 +34,7 @@ typedef union{
         PACON0_t                           PACON0 ; // 0x16
         PACON1_t                           PACON1 ; // 0x17
         PACON2_t                           PACON2 ; // 0x18
-        uint8_t                                R2 ; // 0x19
+        REG_t                                R2 ; // 0x19
         TXBCON0_t                         TXBCON0 ; // 0x1A
         TXNCON_t                           TXNCON ; // 0x1B
         TXG1CON_t                         TXG1CON ; // 0x1C
@@ -48,11 +52,11 @@ typedef union{
         HSYMTMRL_t                       HSYMTMRL ; // 0x28
         HSYMTMRH_t                       HSYMTMRH ; // 0x29
         SOFTRST_t                         SOFTRST ; // 0x2A
-        uint8_t                                R3 ; // 0x2B
+        REG_t                                R3 ; // 0x2B
         SECCON0_t                         SECCON0 ; // 0x2C
         SECCON1_t                         SECCON1 ; // 0x2D
         TXSTBL_t                           TXSTBL ; // 0x2E
-        uint8_t                                R4 ; // 0x2F
+        REG_t                                R4 ; // 0x2F
         RXSR_t                               RXSR ; // 0x30
         INTSTAT_t                         INTSTAT ; // 0x31
         INTCON_t                           INTCON ; // 0x32
@@ -66,7 +70,7 @@ typedef union{
         BBREG2_t                           BBREG2 ; // 0x3A
         BBREG3_t                           BBREG3 ; // 0x3B
         BBREG4_t                           BBREG4 ; // 0x3C
-        uint8_t                                R5 ; // 0x3D
+        REG_t                                R5 ; // 0x3D
         BBREG6_t                           BBREG6 ; // 0x3E
         CCAEDTH_t                         CCAEDTH ; // 0x3F
     }r;
@@ -79,7 +83,7 @@ typedef union{
         RFCON1_t                           RFCON1 ; // 0x201
         RFCON2_t                           RFCON2 ; // 0x202
         RFCON3_t                           RFCON3 ; // 0x203
-        uint8_t                                R6 ; // 0x204
+        REG_t                                R6 ; // 0x204
         RFCON5_t                           RFCON5 ; // 0x205
         RFCON6_t                           RFCON6 ; // 0x206
         RFCON7_t                           RFCON7 ; // 0x207
@@ -87,28 +91,28 @@ typedef union{
         SLPCAL0_t                         SLPCAL0 ; // 0x209
         SLPCAL1_t                         SLPCAL1 ; // 0x20A
         SLPCAL2_t                         SLPCAL2 ; // 0x20B
-        uint8_t                                R7 ; // 0x20C
-        uint8_t                                R8 ; // 0x20D
-        uint8_t                                R9 ; // 0x20E
+        REG_t                                R7 ; // 0x20C
+        REG_t                                R8 ; // 0x20D
+        REG_t                                R9 ; // 0x20E
         RFSTATE_t                         RFSTATE ; // 0x20F
         RSSI_t                               RSSI ; // 0x210
         SLPCON0_t                         SLPCON0 ; // 0x211
-        uint8_t                               R10 ; // 0x212
-        uint8_t                               R11 ; // 0x213
-        uint8_t                               R12 ; // 0x214
-        uint8_t                               R13 ; // 0x215
-        uint8_t                               R14 ; // 0x216
-        uint8_t                               R15 ; // 0x217
-        uint8_t                               R16 ; // 0x218
-        uint8_t                               R17 ; // 0x219
-        uint8_t                               R18 ; // 0x21A
-        uint8_t                               R19 ; // 0x21B
-        uint8_t                               R20 ; // 0x21C
-        uint8_t                               R21 ; // 0x21D
-        uint8_t                               R22 ; // 0x21E
-        uint8_t                               R23 ; // 0x21F
+        REG_t                               R10 ; // 0x212
+        REG_t                               R11 ; // 0x213
+        REG_t                               R12 ; // 0x214
+        REG_t                               R13 ; // 0x215
+        REG_t                               R14 ; // 0x216
+        REG_t                               R15 ; // 0x217
+        REG_t                               R16 ; // 0x218
+        REG_t                               R17 ; // 0x219
+        REG_t                               R18 ; // 0x21A
+        REG_t                               R19 ; // 0x21B
+        REG_t                               R20 ; // 0x21C
+        REG_t                               R21 ; // 0x21D
+        REG_t                               R22 ; // 0x21E
+        REG_t                               R23 ; // 0x21F
         SLPCON1_t                         SLPCON1 ; // 0x220
-        uint8_t                               R24 ; // 0x221
+        REG_t                               R24 ; // 0x221
         WAKETIMEL_t                     WAKETIMEL ; // 0x222
         WAKETIMEH_t                     WAKETIMEH ; // 0x223
         REMCNTL_t                         REMCNTL ; // 0x224
@@ -117,41 +121,41 @@ typedef union{
         MAINCNT1_t                       MAINCNT1 ; // 0x227
         MAINCNT2_t                       MAINCNT2 ; // 0x228
         MAINCNT3_t                       MAINCNT3 ; // 0x229
-        uint8_t                               R25 ; // 0x22A
-        uint8_t                               R26 ; // 0x22B
-        uint8_t                               R27 ; // 0x22C
-        uint8_t                               R28 ; // 0x22D
-        uint8_t                               R29 ; // 0x22E
+        REG_t                               R25 ; // 0x22A
+        REG_t                               R26 ; // 0x22B
+        REG_t                               R27 ; // 0x22C
+        REG_t                               R28 ; // 0x22D
+        REG_t                               R29 ; // 0x22E
         TESTMODE_t                       TESTMODE ; // 0x22F
-        uint8_t                         ASSOEADR0 ; // 0x230
-        uint8_t                         ASSOEADR1 ; // 0x231
-        uint8_t                         ASSOEADR2 ; // 0x232
-        uint8_t                         ASSOEADR3 ; // 0x233
-        uint8_t                         ASSOEADR4 ; // 0x234
-        uint8_t                         ASSOEADR5 ; // 0x235
-        uint8_t                         ASSOEADR6 ; // 0x236
-        uint8_t                         ASSOEADR7 ; // 0x237
-        uint8_t                         ASSOSADR0 ; // 0x238
-        uint8_t                         ASSOSADR1 ; // 0x239
-        uint8_t                               R30 ; // 0x23A
-        uint8_t                               R31 ; // 0x23B
-        uint8_t                               R32 ; // 0x23C
-        uint8_t                               R33 ; // 0x23D
-        uint8_t                               R34 ; // 0x23E
-        uint8_t                               R35 ; // 0x23F
-        uint8_t                          UPNONCE0 ; // 0x240
-        uint8_t                          UPNONCE1 ; // 0x241
-        uint8_t                          UPNONCE2 ; // 0x242
-        uint8_t                          UPNONCE3 ; // 0x243
-        uint8_t                          UPNONCE4 ; // 0x244
-        uint8_t                          UPNONCE5 ; // 0x245
-        uint8_t                          UPNONCE6 ; // 0x246
-        uint8_t                          UPNONCE7 ; // 0x247
-        uint8_t                          UPNONCE8 ; // 0x248
-        uint8_t                          UPNONCE9 ; // 0x249
-        uint8_t                         UPNONCE10 ; // 0x24A
-        uint8_t                         UPNONCE11 ; // 0x24B
-        uint8_t                         UPNONCE12 ; // 0x24C
+        REG_t                         ASSOEADR0 ; // 0x230
+        REG_t                         ASSOEADR1 ; // 0x231
+        REG_t                         ASSOEADR2 ; // 0x232
+        REG_t                         ASSOEADR3 ; // 0x233
+        REG_t                         ASSOEADR4 ; // 0x234
+        REG_t                         ASSOEADR5 ; // 0x235
+        REG_t                         ASSOEADR6 ; // 0x236
+        REG_t                         ASSOEADR7 ; // 0x237
+        REG_t                         ASSOSADR0 ; // 0x238
+        REG_t                         ASSOSADR1 ; // 0x239
+        REG_t                               R30 ; // 0x23A
+        REG_t                               R31 ; // 0x23B
+        REG_t                               R32 ; // 0x23C
+        REG_t                               R33 ; // 0x23D
+        REG_t                               R34 ; // 0x23E
+        REG_t                               R35 ; // 0x23F
+        REG_t                          UPNONCE0 ; // 0x240
+        REG_t                          UPNONCE1 ; // 0x241
+        REG_t                          UPNONCE2 ; // 0x242
+        REG_t                          UPNONCE3 ; // 0x243
+        REG_t                          UPNONCE4 ; // 0x244
+        REG_t                          UPNONCE5 ; // 0x245
+        REG_t                          UPNONCE6 ; // 0x246
+        REG_t                          UPNONCE7 ; // 0x247
+        REG_t                          UPNONCE8 ; // 0x248
+        REG_t                          UPNONCE9 ; // 0x249
+        REG_t                         UPNONCE10 ; // 0x24A
+        REG_t                         UPNONCE11 ; // 0x24B
+        REG_t                         UPNONCE12 ; // 0x24C
     }r;
     uint8_t regs[77];
 } mrf24j0ma_long_control_regs_t;
@@ -165,7 +169,7 @@ typedef union{
 // Long Address Memory Space 
 typedef struct{
     // TX NORMAL FIFO
-    uint8_t tx_norm_fifo[128];
+	uint8_t tx_norm_fifo[128];
     // TX BEACON FIFO
     uint8_t tx_beac_fifo[128];
     // TX GTS1 FIFO
@@ -176,7 +180,7 @@ typedef struct{
 
     // Control registers
     union{
-        uint8_t _CR[128];
+    	uint8_t _CR[128];
         mrf24j0ma_long_control_regs_t LCR;
     };
     

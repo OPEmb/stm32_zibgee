@@ -59,6 +59,50 @@ static void MX_SPI2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+
+//stringification of the argument Arg
+#define PP_STRINGIFY(Arg) PP_STRINGIFY_(Arg)
+#define PP_STRINGIFY_(Arg) #Arg
+
+//concatenation of the two arguments
+#define PP_CAT2(_1, _2) PP_CAT_(_1, _2)
+#define PP_CAT_(_1, _2) _1##_2
+
+//enumerate the number of arguments (min:1, max: 8)
+#define PP_VA_NUM_ARGS(...) PP_VA_NUM_ARGS_(__VA_ARGS__,8,7,6,5,4,3,2,1)
+#define PP_VA_NUM_ARGS_(_1,_2,_3,_4,_5,_6,_7,_8,N,...) N
+
+typedef unsigned char uint8_t;
+
+typedef union{
+    struct{
+        uint8_t  B0 : 1;
+        uint8_t  B1 : 1;
+        uint8_t  B2 : 1;
+        uint8_t  B3 : 1;
+        uint8_t  B4 : 1;
+        uint8_t  B5 : 1;
+        uint8_t  B6 : 1;
+        uint8_t  B7 : 1;
+    };
+    uint8_t val;
+} CR_t;
+
+typedef union{
+    struct{
+        CR_t CR;
+    }r;
+    uint8_t regs[1];
+} regs_t;
+
+#define INIT_BIT(b) .b = 1
+#define INIT_BIT_1(_1) INIT_BIT(_1)
+#define INIT_BIT_2(_1,_2) INIT_BIT(_1),INIT_BIT(_2)
+
+#define S_REG_TYPE(reg)\
+typeof(((regs_t*)0)->r.reg)
+#define REG_U8(reg,...) ((S_REG_TYPE(reg)){PP_CAT2(INIT_BIT_,PP_VA_NUM_ARGS(__VA_ARGS__))(__VA_ARGS__)}).val
+
 /* USER CODE END 0 */
 
 /**
@@ -67,7 +111,7 @@ static void MX_SPI2_Init(void);
   */
 int main(void)
 {
-
+	uint8_t val = REG_U8(CR,B1);
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -191,7 +235,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -246,7 +290,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : PH1 */
   GPIO_InitStruct.Pin = GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
   /*Configure GPIO pins : MRF_CS_Pin MRF_RST_Pin */

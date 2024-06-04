@@ -1,0 +1,86 @@
+//stringification of the argument Arg
+#define PP_STRINGIFY(Arg) PP_STRINGIFY_(Arg)
+#define PP_STRINGIFY_(Arg) #Arg
+
+//concatenation of the two arguments
+#define PP_CAT2(_1, _2) PP_CAT_(_1, _2)
+#define PP_CAT_(_1, _2) _1##_2
+
+//enumerate the number of arguments (min:1, max: 8)
+#define PP_VA_NUM_ARGS(...) PP_VA_NUM_ARGS_(__VA_ARGS__,8,7,6,5,4,3,2,1)
+#define PP_VA_NUM_ARGS_(_1,_2,_3,_4,_5,_6,_7,_8,N,...) N
+
+typedef unsigned char uint8_t;
+
+typedef union{
+    struct{
+        uint8_t  B0 : 1;
+        uint8_t  B1 : 1;
+        uint8_t  B2 : 1;
+        uint8_t  B3 : 1;
+        uint8_t  B4 : 1;
+        uint8_t  B5 : 1;
+        uint8_t  B6 : 1;
+        uint8_t  B7 : 1;
+    };
+    uint8_t val;
+} CR_t;
+
+typedef union{
+    struct{
+        CR_t CR;
+        uint8_t U8;
+    }r;
+    uint8_t regs[2];
+} regs_t;
+
+//a single command initializer
+#define COMMAND(type,bit) ((type)){.bit = 1}
+
+//command list initializer
+#define COMMAND_LST(...) { PP_CAT2(COMMAND_LST_,PP_VA_NUM_ARGS(__VA_ARGS__))(__VA_ARGS__) }
+
+//implement as many as you need
+//maybe you need to extend PP_VA_NUM_ARGS (current max limit 8)
+#define COMMAND_LST_1(_1) COMMAND(_1)
+#define COMMAND_LST_2(_1,_2) COMMAND(_1), COMMAND(_2)
+#define COMMAND_LST_3(_1,_2,_3) COMMAND_LST_2(_1,_2), COMMAND(_3)
+#define COMMAND_LST_4(_1,_2,_3,_4) COMMAND_LST_3(_1,_2,_3), COMMAND(_4)
+
+#define INIT_BIT(b) .b = 1
+#define INIT_BIT_1(_1) INIT_BIT(_1)
+#define INIT_BIT_2(_1,_2) INIT_BIT(_1),INIT_BIT(_2)
+
+#define REG_U8_V(reg,...) (S_REG_TYPE(reg)){.val = __VA_ARGS__}.val
+#define REG_U8_B(reg,...) ((S_REG_TYPE(reg)){PP_CAT2(INIT_BIT_,PP_VA_NUM_ARGS(__VA_ARGS__))(__VA_ARGS__)}).val
+
+#define S_REG_TYPE(reg)\
+typeof(((regs_t*)0)->r.reg)
+
+#define REG_U8_TYPED(reg,...) \
+_Generic(reg,       \
+    default: REG_U8_V,\
+    uint8_t: REG_U8_B)(reg,__VA_ARGS__))
+
+#define REG_U8(reg,...) REG_U8_TYPED(S_REG_TYPE(reg),__VA_ARGS__)
+
+
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c %c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  ((byte) & 0x80 ? '1' : '0'), \
+  ((byte) & 0x40 ? '1' : '0'), \
+  ((byte) & 0x20 ? '1' : '0'), \
+  ((byte) & 0x10 ? '1' : '0'), \
+  ((byte) & 0x08 ? '1' : '0'), \
+  ((byte) & 0x04 ? '1' : '0'), \
+  ((byte) & 0x02 ? '1' : '0'), \
+  ((byte) & 0x01 ? '1' : '0')
+
+void test(uint8_t v){
+
+}
+
+int main(){
+    test(REG_U8(CR,B1,B2));
+ 
+}
