@@ -1,5 +1,8 @@
 // Automatically generated file. DO NOT EDIT.
 
+#ifndef MRF24J40MA_LONG_REGS_H
+#define MRF24J40MA_LONG_REGS_H
+
 #include <stdint.h>
 
 
@@ -362,3 +365,5 @@ typedef union{
     };
     uint8_t val;
 } TESTMODE_t;
+
+#endif /* MRF24J40MA_LONG_REGS_H */
